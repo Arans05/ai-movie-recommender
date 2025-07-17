@@ -1,6 +1,4 @@
 streamlit
 pandas
 scikit-learn
-scikit-surprise
 requests
-numpy<2.0
