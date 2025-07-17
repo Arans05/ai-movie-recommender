@@ -5,7 +5,7 @@ import sqlite3
 import hashlib
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.neighbors import NearestNeighbors
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Movie Recommendation",
@@ -124,26 +124,32 @@ def load_data():
 
 movies_df = load_data()
 
-# --- Content-Based Recommender ---
+# --- Content-Based Recommender (Optimized with KNN) ---
 
 
-@st.cache_data
-def calculate_content_similarity(movies_data):
+@st.cache_resource
+def train_content_model(movies_data):
     tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
     tfidf_matrix = tfidf.fit_transform(movies_data['genres'].fillna(''))
-    return cosine_similarity(tfidf_matrix), pd.Series(movies_data.index, index=movies_data['title']).drop_duplicates()
+    knn_model = NearestNeighbors(
+        n_neighbors=11, metric='cosine', algorithm='brute')
+    knn_model.fit(tfidf_matrix)
+    indices = pd.Series(movies_data.index,
+                        index=movies_data['title']).drop_duplicates()
+    return knn_model, tfidf_matrix, indices
 
 
-cosine_sim_matrix, content_indices = calculate_content_similarity(movies_df)
+knn_model, tfidf_matrix, content_indices = train_content_model(movies_df)
 
 
-def get_content_recommendations(title, cosine_sim, indices):
+def get_content_recommendations(title, model, matrix, indices):
     if title not in indices:
         return pd.DataFrame()
     idx = indices[title]
-    sim_scores = sorted(
-        list(enumerate(cosine_sim[idx])), key=lambda x: x[1], reverse=True)[1:11]
-    return movies_df.iloc[[i[0] for i in sim_scores]]
+    movie_vector = matrix[idx]
+    distances, movie_indices_rec = model.kneighbors(movie_vector)
+    recommended_indices = movie_indices_rec.flatten()[1:]
+    return movies_df.iloc[recommended_indices]
 
 
 # --- Main App ---
@@ -199,7 +205,7 @@ if st.session_state.logged_in:
             'Search for a movie:', movies_df['title'].values)
         if st.button('Recommend Based on Genre', use_container_width=True):
             st.session_state.recommendations = get_content_recommendations(
-                selected_movie_title, cosine_sim_matrix, content_indices)
+                selected_movie_title, knn_model, tfidf_matrix, content_indices)
             st.session_state.show_details = None
 
         if not st.session_state.recommendations.empty:
@@ -251,6 +257,7 @@ if st.session_state.logged_in:
                             f"Removed '{movie['title']}' from your watchlist.")
                         st.rerun()
 
+    # --- Dialog Box Logic ---
     if st.session_state.show_details is not None:
         movie = st.session_state.show_details
         details = fetch_movie_details(movie['tmdbId'])
