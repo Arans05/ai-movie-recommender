@@ -21,7 +21,7 @@ jsonschema @ file:///home/conda/feedstock_root/build_artifacts/jsonschema_174829
 jsonschema-specifications @ file:///tmp/tmpuvkyqc9y/src
 MarkupSafe @ file:///Users/runner/miniforge3/conda-bld/markupsafe_1733219728782/work
 narwhals @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_narwhals_1752503865/work
-numpy @ file:///Users/runner/miniforge3/conda-bld/numpy_1707225421156/work/dist/numpy-1.26.4-cp312-cp312-macosx_11_0_arm64.whl#sha256=011d57633d659db8280a5811d62d0c5a615719a6d7cbd46a04f6ffce0c2a7db3
+numpy==1.26.4
 packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1745345660/work
 pandas @ file:///Users/runner/miniforge3/conda-bld/pandas_1752081795134/work
 pillow @ file:///Users/runner/miniforge3/conda-bld/pillow_1712154527146/work
