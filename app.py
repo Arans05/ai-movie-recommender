@@ -90,7 +90,7 @@ def remove_from_watchlist(username, movie_id):
     conn.commit()
     conn.close()
 
-# --- TMDb API & Data Loading ---
+# --- TMDb API & Data Loading (Optimized) ---
 
 
 @st.cache_data
@@ -116,8 +116,20 @@ def fetch_movie_details(movie_id):
 def load_data():
     movies = pd.read_csv('movies.csv')
     links = pd.read_csv('links.csv')
+    ratings = pd.read_csv('ratings.csv')
+
+    # Calculate rating counts for each movie
+    movie_ratings = ratings.groupby(
+        'movieId').size().reset_index(name='rating_count')
+
+    # Filter for popular movies (e.g., more than 50 ratings)
+    popular_movie_ids = movie_ratings[movie_ratings['rating_count']
+                                      > 50]['movieId']
+    popular_movies = movies[movies['movieId'].isin(popular_movie_ids)]
+
+    # Merge with links to get tmdbId
     movies_with_links = pd.merge(
-        movies, links, on='movieId').dropna(subset=['tmdbId'])
+        popular_movies, links, on='movieId').dropna(subset=['tmdbId'])
     movies_with_links['tmdbId'] = movies_with_links['tmdbId'].astype('int')
     return movies_with_links
 
@@ -129,7 +141,7 @@ movies_df = load_data()
 
 @st.cache_resource
 def train_content_model(movies_data):
-    tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
+    tfidf = TfidfVectorizer(stop_words='english')
     tfidf_matrix = tfidf.fit_transform(movies_data['genres'].fillna(''))
     knn_model = NearestNeighbors(
         n_neighbors=11, metric='cosine', algorithm='brute')
